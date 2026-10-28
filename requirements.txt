@@ -1,0 +1,2 @@
+mcp==1.30.0
+markitdown[docx,pptx,xlsx,xls,pdf]==0.1.9
