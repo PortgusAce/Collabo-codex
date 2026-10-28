@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -14,13 +13,15 @@ import subprocess
 import sys
 import zipfile
 import asyncio
+import shlex
+import stat
 
 BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE))
 from configuration import RUNTIME, FILES_CONFIG, read_json, write_json, validate_file_config
+from credentials import load_runtime_key
 
 TUNNEL_CONFIG = RUNTIME / "tunnel.json"
-KEY_FILE = RUNTIME / "runtime-key.dpapi"
 KEY_ENV = "COLLABO_TUNNEL_KEY"
 
 
@@ -29,13 +30,34 @@ def native_env():
             "XDG_CONFIG_HOME": str(RUNTIME / "config")}
 
 
+def tunnel_target(system=None, machine=None):
+    system = system or sys.platform
+    arch = {"amd64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}.get((machine or platform.machine()).lower())
+    target = {"win32": "windows", "darwin": "darwin"}.get(system)
+    if not arch or not target:
+        raise ValueError("自动安装支持 Windows 和 macOS 的 Intel/AMD 或 ARM 电脑")
+    return target, arch, "tunnel-client.exe" if system == "win32" else "tunnel-client"
+
+
+def extract_client(archive, destination):
+    destination = Path(destination)
+    with zipfile.ZipFile(archive) as bundle:
+        for member in bundle.infolist():
+            target = (destination / member.filename).resolve()
+            if not target.is_relative_to(destination.resolve()) or stat.S_ISLNK(member.external_attr >> 16):
+                raise ValueError("Archive contains an unsafe extraction path")
+        bundle.extractall(destination)
+        if os.name != "nt":
+            for member in bundle.infolist():
+                path = destination / member.filename
+                mode = (member.external_attr >> 16) & 0o777
+                if path.is_file() and mode:
+                    path.chmod(mode)
+
+
 def install_tunnel(proxy=None):
     import requests
-    if sys.platform != "win32":
-        raise ValueError("The setup helper currently supports Windows only; file MCP supports other Python hosts")
-    arch = {"amd64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}.get(platform.machine().lower())
-    if not arch:
-        raise ValueError("Unsupported Windows architecture")
+    target, arch, executable_name = tunnel_target()
     session = requests.Session()
     session.headers["User-Agent"] = "Collabo-codex-installer"
     if proxy:
@@ -45,7 +67,7 @@ def install_tunnel(proxy=None):
     version = release.url.rsplit("/", 1)[-1]
     if not re.fullmatch(r"v\d+\.\d+\.\d+(?:[-.][\w.]+)?", version):
         raise ValueError("Cannot resolve the official tunnel-client release")
-    asset = f"tunnel-client-{version}-windows-{arch}.zip"
+    asset = f"tunnel-client-{version}-{target}-{arch}.zip"
     release_base = f"https://github.com/openai/tunnel-client/releases/download/{version}"
     checks = session.get(release_base + "/SHA256SUMS.txt", timeout=45)
     checks.raise_for_status()
@@ -54,10 +76,12 @@ def install_tunnel(proxy=None):
     if not expected or not re.fullmatch(r"[a-fA-F0-9]{64}", expected):
         raise ValueError("Official checksum is missing; archive will not be installed")
     destination = BASE / "bin" / version
-    executable = destination / "tunnel-client.exe"
+    if target == "darwin":
+        destination = destination / f"{target}-{arch}"
+    executable = destination / executable_name
     if executable.exists():
         manifest = read_json(RUNTIME / "tunnel-install.json", {})
-        if manifest.get("archive_sha256") == expected and manifest.get("executable_sha256") == hashlib.sha256(executable.read_bytes()).hexdigest():
+        if manifest.get("archive_sha256") == expected.lower() and manifest.get("executable_sha256") == hashlib.sha256(executable.read_bytes()).hexdigest():
             return str(executable)
     archive = RUNTIME / "downloads" / asset
     archive.parent.mkdir(parents=True, exist_ok=True)
@@ -74,14 +98,11 @@ def install_tunnel(proxy=None):
     if digest.hexdigest() != expected.lower():
         raise ValueError("Official archive SHA256 mismatch; no executable was installed")
     destination.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(archive) as bundle:
-        for member in bundle.infolist():
-            target = (destination / member.filename).resolve()
-            if not target.is_relative_to(destination.resolve()):
-                raise ValueError("Archive contains an unsafe extraction path")
-        bundle.extractall(destination)
+    extract_client(archive, destination)
     if not executable.is_file():
-        raise ValueError("Official archive contains no tunnel-client.exe")
+        raise ValueError("Official archive contains no tunnel executable")
+    if target == "darwin":
+        executable.chmod(0o755)
     write_json(RUNTIME / "tunnel-install.json", {"version": version, "path": str(executable),
                "archive_sha256": expected.lower(), "executable_sha256": hashlib.sha256(executable.read_bytes()).hexdigest()})
     return str(executable)
@@ -98,11 +119,11 @@ def client_path():
 
 
 def runtime_key():
-    if sys.platform != "win32":
-        raise ValueError("Windows DPAPI credentials can only be opened by their Windows user")
-    import win32crypt
-    encrypted = base64.b64decode(KEY_FILE.read_text().strip(), validate=True)
-    return win32crypt.CryptUnprotectData(encrypted, None, None, None, 0)[1].decode("utf-8")
+    return load_runtime_key()
+
+
+def mcp_command(arguments, system=None):
+    return subprocess.list2cmdline(arguments) if (system or sys.platform) == "win32" else shlex.join(arguments)
 
 
 def run_client(args, *, env=None, key=None):
@@ -136,7 +157,7 @@ def connect_tunnel():
             pass
         env.update({"HTTPS_PROXY": proxy, "HTTP_PROXY": proxy, "NO_PROXY": "localhost,127.0.0.1,::1"})
     profiles = RUNTIME / "profiles"
-    command = subprocess.list2cmdline([Path(sys.executable).as_posix(), (BASE / "gateway.py").as_posix()])
+    command = mcp_command([Path(sys.executable).as_posix(), (BASE / "gateway.py").as_posix()])
     # Generate/refresh the native profile; only an environment reference is persisted.
     init = subprocess.run([client_path(), "init", "--force", "--profile", "collabo-codex", "--profile-dir", str(profiles),
                           "--tunnel-id", tunnel_id, "--mcp-command", command,
@@ -168,8 +189,11 @@ def bind_desktop(anchor=None):
     candidates.sort(key=lambda p: [int(n) for n in re.findall(r"\d+", p.parent.name)], reverse=True)
     node = os.environ.get("CODEX_MCP_NODE_PATH") or shutil.which("node")
     if not node:
-        bundled = Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe"
-        node = str(bundled) if bundled.exists() else None
+        node_name = "node.exe" if sys.platform == "win32" else "node"
+        candidates_node = [Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin" / node_name]
+        if sys.platform == "darwin":
+            candidates_node += [Path("/opt/homebrew/bin/node"), Path("/usr/local/bin/node")]
+        node = next((str(p) for p in candidates_node if p.is_file()), None)
     if not node:
         raise ValueError("Node.js was not found; install Node or run this command from local Codex")
     write_json(RUNTIME / "desktop-bridge.json", {"node": node, "server": str(candidates[0]),

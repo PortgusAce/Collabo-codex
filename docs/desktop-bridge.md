@@ -10,10 +10,20 @@
 
 > 请在 Collabo-codex 目录里运行下面的命令，连接当前桌面的本地项目。第一条命令如果需要聊天 ID，请使用当前本地聊天的真实 ID。
 
+Windows：
+
 ```powershell
 .\.venv\Scripts\python.exe tools\manage.py bind-desktop
 .\.venv\Scripts\python.exe tools\manage.py stop
 .\.venv\Scripts\python.exe tools\manage.py connect
+```
+
+Mac：
+
+```bash
+./.venv/bin/python tools/manage.py bind-desktop
+./.venv/bin/python tools/manage.py stop
+./.venv/bin/python tools/manage.py connect
 ```
 
 4. 回到 ChatGPT 的插件详情，点击 **Refresh / 刷新**。
@@ -37,4 +47,4 @@
 
 - 使用项目功能时，保持桌面客户端打开。
 - 桌面重启或更新后，如果项目列表读取失败，重新执行上面的连接步骤。
-- 想批量允许读取项目文件，打开 **Permissions.cmd**，点击 **导入本地项目**。
+- 想批量允许读取项目文件，Windows 打开 **Permissions.cmd**，Mac 打开 **Permissions.command**，点击 **导入本地项目**。

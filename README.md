@@ -14,30 +14,40 @@
 
 ## 第一次怎么配置
 
-准备一台 Windows 电脑，安装 Python 3.11 或更新版本，并登录 ChatGPT/Codex 桌面客户端。
+支持 Windows 和 Mac，Mac 包括 Apple Silicon 与 Intel。安装 Python 3.11 或更新版本，并登录 ChatGPT/Codex 桌面客户端。
+
+Mac 建议安装 [python.org 提供的 Python 3.12 或更新版本](https://www.python.org/downloads/macos/)。
 
 ### 1. 安装
 
-下载本仓库，解压到固定位置，双击 **Install.cmd**，等待安装完成。
+下载本仓库，解压到固定位置，选择对应的入口：
+
+| 用途 | Windows | Mac |
+| --- | --- | --- |
+| 安装 | Install.cmd | Install.command |
+| 填写连接信息 | Setup.cmd | Setup.command |
+| 管理读取目录 | Permissions.cmd | Permissions.command |
+
+双击安装文件，等待安装完成。Mac 也可以在终端进入该文件夹，运行 `bash Install.command`。
 
 ### 2. 创建连接和密钥
 
 1. 打开 [OpenAI Tunnel 设置](https://platform.openai.com/settings/organization/tunnels)，创建一个 Tunnel。它负责连接 ChatGPT 和你的电脑。
-2. 选择自己的组织，以及使用插件的 ChatGPT 个人或团队空间，记下 **Tunnel ID**。
+2. 选择自己的组织，以及使用插件的 ChatGPT 个人或团队空间，记下 **Tunnel ID**。每台电脑单独创建一个 Tunnel，方便选择要连接的电脑。
 3. 打开 [API keys](https://platform.openai.com/settings/organization/api-keys)，创建运行密钥。个人使用可选自己为所有者，权限勾选 **Tunnels Read + Use**。
 
 ### 3. 在本机填写配置
 
-双击 **Setup.cmd**，填写：
+Windows 打开 **Setup.cmd**，Mac 打开 **Setup.command**，填写：
 
 | 项目 | 填什么 |
 | --- | --- |
 | Tunnel ID | 上一步创建的 ID |
 | Runtime API key | 上一步创建的运行密钥 |
 | Proxy | 按需填写正在使用的 HTTP 代理地址 |
-| 目录列表 | 点击 Add folder，选择允许读取的目录 |
+| 读取目录 | 在目录权限窗口中添加允许读取的目录 |
 
-点击 **Save and connect**。工具会自动下载连接程序并启动。密钥只需在这个本机窗口填写一次。
+Windows 点击 **Save and connect**，Mac 点击 **保存并连接**。工具会自动下载对应电脑的连接程序并启动。密钥首次填写后即可留空；Mac 将密钥保存在系统钥匙串中。
 
 ### 4. 添加到 ChatGPT
 
@@ -78,7 +88,7 @@ Word 使用 `.docx`，PPT 使用 `.pptx`。旧版文件先在 Office 中另存�
 
 ### 调整读取目录
 
-双击 **Permissions.cmd** 打开目录权限窗口：
+Windows 打开 **Permissions.cmd**，Mac 打开 **Permissions.command**，进入目录权限窗口：
 
 - **添加目录**：选择一个文件夹并允许读取。
 - **导入本地项目**：一次加入桌面已保存的所有本机项目目录，包含子目录。

@@ -1,13 +1,29 @@
 name: Tests
 on: [push, pull_request]
 jobs:
-  windows:
-    runs-on: windows-latest
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements*.txt
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
-      - run: powershell.exe -NoProfile -STA -File Permissions.ps1 -SelfTest
+      - if: runner.os == 'Windows'
+        run: powershell.exe -NoProfile -STA -File Permissions.ps1 -SelfTest
+      - if: runner.os == 'macOS'
+        run: |
+          bash -n Install.command Setup.command Permissions.command
+          COLLABO_PYTHON="$(python -c 'import sys; print(sys.executable)')" bash Install.command
+          bash Setup.command --check-ui
+          bash Permissions.command --check-ui
+          .venv/bin/python tools/manage.py install-tunnel
+          .venv/bin/python -c "from tools.manage import client_path; import subprocess; subprocess.run([client_path(), 'help'], check=True, stdout=subprocess.DEVNULL)"
