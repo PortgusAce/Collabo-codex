@@ -3,10 +3,17 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import base64
 
 BASE = Path(__file__).resolve().parent
 RUNTIME = BASE / ".runtime"
 FILES_CONFIG = RUNTIME / "files.json"
+
+
+def server_icons():
+    from mcp.types import Icon
+    data = base64.b64encode((BASE / "assets/icon.png").read_bytes()).decode("ascii")
+    return [Icon(src="data:image/png;base64," + data, mimeType="image/png", sizes=["512x512"])]
 
 
 def read_json(path, default=None):

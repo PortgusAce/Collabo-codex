@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+import asyncio
 
 BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE))
@@ -182,7 +183,7 @@ def main():
     install = sub.add_parser("install-tunnel"); install.add_argument("--proxy")
     bind = sub.add_parser("bind-desktop"); bind.add_argument("--anchor-thread-id")
     roots = sub.add_parser("set-roots"); roots.add_argument("paths", nargs="*")
-    for action in ["connect", "status", "stop"]:
+    for action in ["connect", "status", "stop", "list-local-projects"]:
         sub.add_parser(action)
     args = parser.parse_args()
     try:
@@ -190,6 +191,12 @@ def main():
             result = {"installed": install_tunnel(args.proxy)}
         elif args.action == "bind-desktop":
             result = bind_desktop(args.anchor_thread_id)
+        elif args.action == "list-local-projects":
+            from gateway import DesktopProxy, local_project_records
+            async def fetch_projects():
+                response = await asyncio.wait_for(DesktopProxy().call_tool("list_projects", {}), timeout=25)
+                return {"projects": local_project_records(response)}
+            result = asyncio.run(fetch_projects())
         elif args.action == "set-roots":
             config = validate_file_config({**read_json(FILES_CONFIG, {}), "roots": args.paths})
             write_json(FILES_CONFIG, config); result = config

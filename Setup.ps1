@@ -37,7 +37,7 @@ $taskForm = New-Object Windows.Forms.Form
 $taskForm.Text = 'Collabo-codex setup'
 $taskIconPath = Join-Path $taskBase 'assets/icon.ico'
 if (Test-Path -LiteralPath $taskIconPath) { $taskForm.Icon = New-Object Drawing.Icon($taskIconPath) }
-$taskForm.ClientSize = New-Object Drawing.Size(720, 530)
+$taskForm.ClientSize = New-Object Drawing.Size(720, 570)
 $taskForm.StartPosition = 'CenterScreen'
 $taskForm.FormBorderStyle = 'FixedDialog'
 $taskForm.MaximizeBox = $false
@@ -143,6 +143,15 @@ $taskConnect.Add_Click({
     finally { $taskForm.UseWaitCursor = $false; $taskConnect.Enabled = $true; $taskSave.Enabled = $true }
 })
 $taskForm.Controls.Add($taskConnect)
+$taskPermissions = New-Object Windows.Forms.Button
+$taskPermissions.Text = 'Manage directory permissions (instant apply)'
+$taskPermissions.Location = New-Object Drawing.Point(18,525)
+$taskPermissions.Size = New-Object Drawing.Size(680,30)
+$taskPermissions.Add_Click({
+    Start-Process powershell.exe -WindowStyle Hidden -ArgumentList @('-NoProfile','-STA','-File',('"' + (Join-Path $taskBase 'Permissions.ps1') + '"'))
+    $taskForm.Close()
+})
+$taskForm.Controls.Add($taskPermissions)
 if ($AnchorThreadId -and $env:CODEX_APP_TOOLS_PIPE_PATH -and (Test-Path -LiteralPath $taskPython)) {
     try { Invoke-TaskManager -ManagerArgs @('bind-desktop','--anchor-thread-id',$AnchorThreadId) | Out-Null }
     catch { $taskStatus.Text = 'Desktop binding failed; see docs/desktop-bridge.md. File tools are still usable.' }

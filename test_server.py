@@ -136,7 +136,8 @@ def test_real_mcp_stdio(tmp_path):
                                        args=[str(Path(__file__).with_name("server.py")), "--config", str(config)])
         async with stdio_client(params) as (read, write):
             async with ClientSession(read, write) as session:
-                await session.initialize()
+                initialized = await session.initialize()
+                assert initialized.serverInfo.icons[0].src.startswith("data:image/png;base64,")
                 tools = (await session.list_tools()).tools
                 assert {t.name for t in tools} == {"list_roots", "list_files", "search_files", "read_file"}
                 assert all(t.annotations.readOnlyHint for t in tools)
@@ -148,5 +149,12 @@ def test_real_mcp_stdio(tmp_path):
                 assert "protocol smoke test" in result.content[0].text
                 denied = await session.call_tool("read_file", {"path": str(tmp_path.parent)})
                 assert denied.isError
+
+                config.write_text(json.dumps({"roots": []}), encoding="utf-8")
+                revoked = await session.call_tool("read_file", {"path": str(tmp_path / "协议测试.txt")})
+                assert revoked.isError
+                config.write_text(json.dumps({"roots": [str(tmp_path)]}), encoding="utf-8")
+                restored = await session.call_tool("read_file", {"path": str(tmp_path / "协议测试.txt")})
+                assert not restored.isError
 
     asyncio.run(run())
