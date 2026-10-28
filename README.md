@@ -1,114 +1,94 @@
-<p align="center"><img src="assets/icon.png" width="88" alt="Collabo-codex icon"></p>
+<p align="center"><img src="assets/icon.png" width="88" alt="Collabo-codex"></p>
 
 # Collabo-codex
 
-让 Chat 讨论方案，让本地 Work／Codex 执行任务。通过 MCP 读取你授权的本机目录、提取 Word/PPT 内容，并在桌面指定项目下创建和跟进工作。
-
-Collabo-codex 是本机 MCP 网关：文件读取使用 Microsoft MarkItDown；会话协作复用已安装桌面客户端的官方 `codex-app-tools`；普通 Chat 通过 OpenAI Secure MCP Tunnel 连接本机。
-
-```text
-Chat 讨论并确认方案
-       ↓ MCP / Secure MCP Tunnel
-Collabo-codex（你的电脑）
-       ├─ 授权目录：列文件、找文件、读取文档
-       └─ 桌面会话：指定本地项目 → 创建任务 → 补充要求 → 读取进度和结果
-```
+在 Chat 里讨论方案、读取电脑上的文件，再把任务交给指定的本地项目执行。
 
 ## 能做什么
 
-| 工具 | 用途 |
+- 浏览文件夹，按名称寻找文件。
+- 读取文本、代码、Word、PPT、Excel 和文字版 PDF。
+- 列出本地项目，在选定项目下新建执行任务。
+- 查看任务进度和结果，给已有任务补充要求。
+- 随时调整允许读取的目录，一键导入所有本地项目目录。
+
+## 第一次怎么配置
+
+准备一台 Windows 电脑，安装 Python 3.11 或更新版本，并登录 ChatGPT/Codex 桌面客户端。
+
+### 1. 安装
+
+下载本仓库，解压到固定位置，双击 **Install.cmd**，等待安装完成。
+
+### 2. 创建连接和密钥
+
+1. 打开 [OpenAI Tunnel 设置](https://platform.openai.com/settings/organization/tunnels)，创建一个 Tunnel。它负责连接 ChatGPT 和你的电脑。
+2. 选择自己的组织，以及使用插件的 ChatGPT 个人或团队空间，记下 **Tunnel ID**。
+3. 打开 [API keys](https://platform.openai.com/settings/organization/api-keys)，创建运行密钥。个人使用可选自己为所有者，权限勾选 **Tunnels Read + Use**。
+
+### 3. 在本机填写配置
+
+双击 **Setup.cmd**，填写：
+
+| 项目 | 填什么 |
 | --- | --- |
-| `list_roots` | 查看用户授权的文件读取目录 |
-| `list_files` | 分页浏览目录，返回文件路径、大小和修改时间 |
-| `search_files` | 按中文/英文名称、子串或 `*.pptx` 等通配符查找 |
-| `read_file` | 分段读取文本，或提取 DOCX、PPTX、XLSX/XLS、PDF 为 Markdown |
-| `list_local_projects` | 查看桌面已保存的本地项目和项目 ID |
-| `create_work_task` | 将任务创建到用户指定的本地项目下 |
-| `list_threads` / `read_thread` | 查询聊天及选定任务的结果 |
-| `send_message_to_thread` | 向用户指定的任务补充要求 |
-| `wait_threads` / `set_thread_title` | 查询完成状态、修改任务标题 |
+| Tunnel ID | 上一步创建的 ID |
+| Runtime API key | 上一步创建的运行密钥 |
+| Proxy | 按需填写正在使用的 HTTP 代理地址 |
+| 目录列表 | 点击 Add folder，选择允许读取的目录 |
 
-新建和发消息需要用户明确提出。工具不会把一次方案讨论自动当作执行指令。窗口之间通过目标、材料路径、限制和交付要求进行交接。
+点击 **Save and connect**。工具会自动下载连接程序并启动。密钥只需在这个本机窗口填写一次。
 
-## Windows 快速开始
+### 4. 添加到 ChatGPT
 
-准备 Python 3.11+、已登录的 ChatGPT/Codex 桌面客户端，以及允许创建自定义 MCP 插件的个人账户或工作区。首次安装需要联网。
+1. 打开 [Plugins](https://chatgpt.com/plugins)，点击加号，选择 **Add custom MCP server**。
+2. 名称填写 **Collabo-codex**，连接方式选择 **Tunnel**，选中刚才的 Tunnel ID。
+3. 身份验证选择 **No authentication**，创建并安装插件。
+4. 新建普通 Chat，输入 `@` 选择插件，发送：“列出允许读取的目录”。
 
-1. 下载或克隆本仓库，解压到固定位置。双击 **`Install.cmd`**，安装项目独立环境。
-2. 在 [OpenAI Tunnel 设置](https://platform.openai.com/settings/organization/tunnels) 创建 Tunnel，关联自己的 Platform 组织和客户端使用的 ChatGPT 工作区；记录 Tunnel ID。
-3. 在 [Runtime API keys](https://platform.openai.com/settings/organization/api-keys) 创建运行密钥。个人使用可选自己为所有者，确保该身份具有 **Tunnels Read + Use**。不要使用 Admin key。
-4. 双击 **`Setup.cmd`**：填写 Tunnel ID 和运行密钥；有需要再填 HTTP 代理；用 **Add folder** 选择允许读取的目录。点击 **Save and connect**。
-5. 工具自动下载并校验官方 Windows Tunnel 客户端，生成配置、执行预检并启动。看到本机 ready 后，在 ChatGPT 的 **Plugins → 添加自定义 MCP server** 中选择 **Tunnel**，选择同一个 Tunnel ID，身份验证选 **No authentication**，创建并安装插件。
-6. 在客户端普通 Chat 选择插件，先说“列出允许读取的目录”，再读取一个合成或普通测试文件，确认完整连接成功。
+### 5. 连接本地项目
 
-网页可能用于一次性账户设置和插件配置；日常使用可以继续留在客户端 Chat。官方账户权限和插件授权仍由用户自己操作。
+使用新建任务、查看进度和导入项目目录前，按 [本地项目连接步骤](docs/desktop-bridge.md) 完成一次设置。
 
-### 启用桌面任务协作
+## 日常怎么使用
 
-文件工具可先独立使用。要使用项目/会话工具，还需把桌面的官方 MCP 连接绑定到本地会话。请按照 [桌面绑定指南](docs/desktop-bridge.md) 在一个本地 Codex 对话中运行绑定命令，再重新连接隧道并刷新插件工具。
+### 读取文件
 
-这是当前桌面版本的适配：**没有随仓库分发 OpenAI 的专有插件，也没有公开稳定的 ChatGPT Work REST API**。桌面须保持打开；重启、升级或 IPC 端点变化后可能需要重新绑定。绑定失效时文件工具继续可用，会话工具不会假装成功。
+在 Chat 中选择插件，直接说：
 
-### 把任务放到指定本地项目
+> 在允许读取的目录里，按名称寻找“研究方案”。
+>
+> 读取刚才找到的 Word，整理主要内容和表格。
+>
+> 读取这份 PPT 的文字和演讲者备注。
 
-先让 Chat 调用 `list_local_projects`，选择其中一个项目。然后可以说：
+Word 使用 `.docx`，PPT 使用 `.pptx`。旧版文件先在 Office 中另存为这两种格式。扫描版 PDF 先转成可选中文字的版本。
 
-> 在刚才选中的本地项目下新建任务：按已确认的大纲撰写文档，材料在项目的 inputs 目录，交付到 outputs，不修改原始材料。
+### 让本地项目执行任务
 
-`create_work_task` 只接受当前本机已注册的项目 ID，再次查询项目后将 `projectId + environment.local` 传给桌面原生新建接口。它会拒绝未知、远程或云端项目，不把任务静默创建到默认目录。需要新目录时，先在桌面客户端将它添加为本地项目。
+> 列出我的本地项目。
+>
+> 在选中的项目下新建任务：按刚才确认的大纲写一份方案，材料在 inputs 目录，完成的文档放到 outputs 目录。
+>
+> 查看这个任务的进度。
+>
+> 给这个任务补充要求：增加一页执行计划。
 
-本地执行聊天的界面名称/模式由桌面当前版本决定；本工具不强制改写 UI 模式，也不把 API 创建的云端会话冒充本地 Work。
+交接任务时，写清目标、材料位置、具体要求和交付位置。使用期间保持桌面客户端打开。
 
-## 自定义文件读取权限
+### 调整读取目录
 
-日常双击 **`Permissions.cmd`** 打开独立中文权限窗口。目录勾选即授权，取消勾选即撤销，操作立即保存；**不需要 Tunnel、Key、重连隧道或刷新插件**。未勾选的目录会留在列表，方便下次恢复，也可以移除或一键取消全部授权。
+双击 **Permissions.cmd** 打开目录权限窗口：
 
-点击 **导入本地项目**，会从桌面获取当前已保存的所有本机项目，把它们的目录一次加入并授权，包括子目录。需要桌面保持打开且已绑定；排除远程和云端项目。新增加的项目要再次手动点击导入，不会自动扩大权限。
+- **添加目录**：选择一个文件夹并允许读取。
+- **导入本地项目**：一次加入桌面已保存的所有本机项目目录，包含子目录。
+- **勾选 / 取消勾选**：开启或撤销该目录的读取权限。
+- **移除所选项 / 全部取消授权**：清理目录列表或暂停全部读取。
 
-**默认列表为空，代表不允许读取任何目录。** 如果父目录仍被授权，取消子目录的勾选不会覆盖父目录权限；要限制到项目级别，请先取消更上层的大目录授权。初次配置也可使用 `Setup.cmd` 的目录列表。
+每次操作立即保存，下一次读取生效。修改目录时直接使用这个窗口，原有连接和密钥继续沿用。
 
-也可以在本机命令行设置（将示例替换成自己的目录）：
+按项目控制权限时，只勾选需要的项目目录，并取消更上层的大目录。之后新增的项目，再点一次“导入本地项目”即可加入。
 
-```powershell
-.\.venv\Scripts\python.exe tools\manage.py set-roots "D:\Documents" "E:\Research"
-# 清空白名单：
-.\.venv\Scripts\python.exe tools\manage.py set-roots
-```
+重新连接、更新和常见问题见 [日常使用指南](docs/usage.md)。
 
-权限只允许在本机配置工具/文件中修改，Chat 没有扩大自己文件权限的工具。该白名单约束文件读取服务；Work/Codex 执行任务的权限由桌面客户端独立管理。
-
-## 文档读取
-
-- DOCX：标题、正文、表格；PPTX：幻灯片文字和演讲者备注。
-- XLSX/XLS：表格文字；PDF：可提取文本。
-- 文本、代码、CSV、JSON 等支持 UTF-8、带 BOM 的 UTF-16、GB18030，可指定编码。
-- 旧 `.doc` / `.ppt` 需要先转换为 `.docx` / `.pptx`。
-- 不提供 OCR 或图像理解；Markdown 不保证保留视觉版式、图表和图片。
-
-默认单文件 64 MB，Office 展开内容 256 MB，转换 45 秒超时。读取长内容使用 `next_offset`；搜索结果的 `incomplete` 为 true 时，应缩小范围，不能断言其他位置没有文件。
-
-## 配置和密钥放在哪里
-
-所有用户配置、加密密钥、桌面绑定和诊断均位于忽略提交的 `.runtime/`；下载的官方二进制在 `bin/`。配置工具用 Windows 当前用户的 DPAPI 加密运行密钥，只在启动 Tunnel 时解密到子进程环境，不写入源码或明文参数。
-
-文件工具没有写入/执行接口；拒绝 URL、UNC、备用数据流、目录越界、常见凭据文件和 `.runtime`。搜索不跟随目录联接/符号链接，显式读取也会检查解析后的目标。目录授权不是对所有敏感文件的自动识别，选择范围时请按实际需要授权。
-
-完整操作和排错见 [使用指南](docs/usage.md)、[桌面绑定](docs/desktop-bridge.md)、[能力与验证状态](docs/validation.md)。
-
-### 图标
-
-本机窗口使用 `assets/icon.ico`；MCP 初始化元信息也带有 PNG 图标。**现有 ChatGPT 插件的头像是独立的展示资料，刷新工具列表不保证更新头像**。需要在插件的编辑/图标入口选择 [`assets/icon.png`](assets/icon.png)，或在正式插件包中配置 `logo` / `composerIcon`；不要为换头像重新创建 Tunnel。详见 [图标说明](docs/icons.md)。
-
-## 开发与测试
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest -q
-```
-
-纯 stdio 使用：`.\.venv\Scripts\python.exe gateway.py`。仅文件服务：`.\.venv\Scripts\python.exe server.py`。配置格式见 `config.example.json`；实际文件配置为 `.runtime/files.json`。
-
-## 依赖与许可
-
-本仓库代码为 MIT。依赖 [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)、[Microsoft MarkItDown](https://github.com/microsoft/markitdown)；配置工具下载 [OpenAI tunnel-client](https://github.com/openai/tunnel-client) 官方发布包并保留其中许可文件。已安装桌面的官方插件由用户本机提供，适用其原有许可，不属于本仓库 MIT 授权范围。
+代码采用 [MIT 许可](LICENSE)。文档提取使用 [Microsoft MarkItDown](https://github.com/microsoft/markitdown)。
